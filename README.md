@@ -58,3 +58,14 @@ aws servicediscovery list-namespaces
 
 
 aws servicediscovery list-services --filters Name=NAMESPACE_ID,Values=ns-fh5y2qeli4nse5q3
+$ git tag -a v1.0 -m "Versão funcional sem service discovery"
+
+ns-fh5y2qeli4nse5q3
+
+aws servicediscovery delete-namespace --id ns-fh5y2qeli4nse5q3
+aws servicediscovery get-operation --operation-id fzvi7axn6rakz5qznqszykxemmiaouq6-5rlm0cbz
+
+cloudmap_namespace_id = "ns-fh5y2qeli4nse5q3"
+cloudmap_namespace_name = "selectgearmotors.local"
+eks_cluster_endpoint = "https://E1D2AE3685ED515E468D1C56D640AE4F.gr7.us-east-1.eks.amazonaws.com"
+eks_cluster_name = "selectgearmotors-eks-cluster"

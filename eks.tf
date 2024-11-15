@@ -26,6 +26,12 @@ resource "aws_iam_role" "eks_role" {
   })
 }
 
+# Política para o Cloud Map
+resource "aws_iam_role_policy_attachment" "eks_cloudmap_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/AWSCloudMapFullAccess"
+  role       = aws_iam_role.eks_role.name
+}
+
 resource "aws_iam_role_policy_attachment" "eks_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
   role       = aws_iam_role.eks_role.name
@@ -58,6 +64,13 @@ resource "aws_security_group" "eks_cluster_sg" {
   }
 }
 
+# Criar o namespace privado no AWS Cloud Map
+resource "aws_service_discovery_private_dns_namespace" "cloudmap_namespace" {
+  name = "selectgearmotors.local"
+  vpc  = var.vpc_id
+  description = "Private DNS Namespace for Select Gear Motors APIs"
+}
+
 # Criar o cluster EKS
 resource "aws_eks_cluster" "eks_cluster" {
   name     = var.eks_cluster_name
@@ -69,7 +82,8 @@ resource "aws_eks_cluster" "eks_cluster" {
   }
 
   depends_on = [
-    aws_iam_role_policy_attachment.eks_policy
+    aws_iam_role_policy_attachment.eks_policy,
+    aws_iam_role_policy_attachment.eks_cloudmap_policy
   ]
 }
 
@@ -101,6 +115,12 @@ resource "aws_iam_role_policy_attachment" "eks_worker_node_policy" {
 
 resource "aws_iam_role_policy_attachment" "eks_worker_node_ecr_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+  role       = aws_iam_role.eks_node_group_role.name
+}
+
+# Adicionar permissões para Cloud Map nos Nodes
+resource "aws_iam_role_policy_attachment" "eks_worker_cloudmap_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/AWSCloudMapDiscoverInstanceAccess"
   role       = aws_iam_role.eks_node_group_role.name
 }
 
@@ -153,11 +173,12 @@ resource "aws_eks_node_group" "node_group" {
   depends_on = [
     aws_iam_role_policy_attachment.eks_worker_node_policy,
     aws_iam_role_policy_attachment.eks_worker_node_ecr_policy,
-    aws_iam_role_policy_attachment.eks_cni_policy
+    aws_iam_role_policy_attachment.eks_cni_policy,
+    aws_iam_role_policy_attachment.eks_worker_cloudmap_policy
   ]
 }
 
-# Criar o namespace selectgearmotors-ns
+# Criar o namespace selectgearmotors-ns no Kubernetes
 resource "kubernetes_namespace" "selectgearmotors_ns" {
   metadata {
     name = "selectgearmotors-ns"
@@ -166,15 +187,4 @@ resource "kubernetes_namespace" "selectgearmotors_ns" {
   depends_on = [
     aws_eks_cluster.eks_cluster
   ]
-}
-
-# Outputs do cluster
-output "eks_cluster_endpoint" {
-  description = "O endpoint da API do cluster EKS"
-  value       = aws_eks_cluster.eks_cluster.endpoint
-}
-
-output "eks_cluster_name" {
-  description = "Nome do cluster EKS"
-  value       = aws_eks_cluster.eks_cluster.name
 }
