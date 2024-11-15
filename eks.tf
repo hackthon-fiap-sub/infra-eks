@@ -1,3 +1,16 @@
+# Obter informações de autenticação do cluster EKS
+data "aws_eks_cluster_auth" "eks" {
+  name = aws_eks_cluster.eks_cluster.name
+}
+
+# Configurar o provedor Kubernetes
+provider "kubernetes" {
+  host                   = aws_eks_cluster.eks_cluster.endpoint
+  token                  = data.aws_eks_cluster_auth.eks.token
+  cluster_ca_certificate = base64decode(aws_eks_cluster.eks_cluster.certificate_authority[0].data)
+}
+
+# Role para o cluster EKS
 resource "aws_iam_role" "eks_role" {
   name = "eks-cluster-role"
 
@@ -18,6 +31,7 @@ resource "aws_iam_role_policy_attachment" "eks_policy" {
   role       = aws_iam_role.eks_role.name
 }
 
+# Security Group para o cluster EKS
 resource "aws_security_group" "eks_cluster_sg" {
   name   = "eks-cluster-sg"
   vpc_id = var.vpc_id
@@ -44,12 +58,13 @@ resource "aws_security_group" "eks_cluster_sg" {
   }
 }
 
+# Criar o cluster EKS
 resource "aws_eks_cluster" "eks_cluster" {
   name     = var.eks_cluster_name
   role_arn = aws_iam_role.eks_role.arn
 
   vpc_config {
-    subnet_ids       = var.subnet_ids
+    subnet_ids         = var.subnet_ids
     security_group_ids = [aws_security_group.eks_cluster_sg.id]
   }
 
@@ -58,6 +73,7 @@ resource "aws_eks_cluster" "eks_cluster" {
   ]
 }
 
+# Role para o Node Group do EKS
 resource "aws_iam_role" "eks_node_group_role" {
   name = "eks-node-group-role"
 
@@ -88,6 +104,7 @@ resource "aws_iam_role_policy_attachment" "eks_worker_node_ecr_policy" {
   role       = aws_iam_role.eks_node_group_role.name
 }
 
+# Security Group para os Workers do EKS
 resource "aws_security_group" "eks_worker_sg" {
   name   = "eks-worker-sg"
   vpc_id = var.vpc_id
@@ -121,6 +138,7 @@ resource "aws_security_group" "eks_worker_sg" {
   }
 }
 
+# Node Group para o cluster EKS
 resource "aws_eks_node_group" "node_group" {
   cluster_name    = aws_eks_cluster.eks_cluster.name
   node_group_name = "${var.eks_cluster_name}-node-group"
@@ -139,6 +157,18 @@ resource "aws_eks_node_group" "node_group" {
   ]
 }
 
+# Criar o namespace selectgearmotors-ns
+resource "kubernetes_namespace" "selectgearmotors_ns" {
+  metadata {
+    name = "selectgearmotors-ns"
+  }
+
+  depends_on = [
+    aws_eks_cluster.eks_cluster
+  ]
+}
+
+# Outputs do cluster
 output "eks_cluster_endpoint" {
   description = "O endpoint da API do cluster EKS"
   value       = aws_eks_cluster.eks_cluster.endpoint
