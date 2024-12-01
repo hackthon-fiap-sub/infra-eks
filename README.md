@@ -19,8 +19,8 @@ kubectl get deployments -n selectgearmotors-ns
 kubectl get services -n selectgearmotors-ns
 
 
-
 kubectl logs selectgearmotors-company-api -n selectgearmotors-ns
+kubectl logs selectgearmotors-transaction-api-6f78495d6b-w6kgz -n selectgearmotors-ns
 
 ## Delete all Deployments in Namespace
 kubectl delete deployments --all -n selectgearmotors-ns
@@ -69,3 +69,33 @@ cloudmap_namespace_id = "ns-fh5y2qeli4nse5q3"
 cloudmap_namespace_name = "selectgearmotors.local"
 eks_cluster_endpoint = "https://E1D2AE3685ED515E468D1C56D640AE4F.gr7.us-east-1.eks.amazonaws.com"
 eks_cluster_name = "selectgearmotors-eks-cluster"
+
+===
+aws servicediscovery list-namespaces
+aws servicediscovery list-services --filters Name=NAMESPACE_ID,Values=ns-fh5y2qeli4nse5q3
+
+
+kubectl describe service api-client-service -n selectgearmotors-ns
+
+aws servicediscovery list-services
+aws servicediscovery get-service --id <service-id>
+
+aws servicediscovery get-service --id srv-eg4uu23unl75inrq
+
+kubectl get pods -n kube-system | grep coredns
+
+===
+aws servicediscovery create-private-dns-namespace \
+  --name selectgearmotors.local \
+  --vpc vpc-04308bc5185e0f872 \
+  --description "Namespace para serviços SelectGearMotors"
+
+
+aws servicediscovery list-services
+aws servicediscovery get-service --id <service-id>
+
+helm repo add eks https://aws.github.io/eks-charts
+helm repo update
+
+
+kubectl run -i --tty dns-test --image=busybox --restart=Never --namespace selectgearmotors-ns -- sh
